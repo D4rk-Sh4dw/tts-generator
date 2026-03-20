@@ -419,20 +419,29 @@ function App() {
                       </div>
                     </div>
                   </div>
-                  
-                  <button 
-                    className={`btn btn-primary ${isGeneratingTTS ? '' : 'pulse'}`} 
-                    onClick={handleSynthesize}
-                    disabled={isGeneratingTTS || !ttsText.trim()}
-                  >
-                    {isGeneratingTTS ? <div className="loader"></div> : (
-                      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                    {isGeneratingTTS ? 'Synthesizing...' : 'Synthesize Speech'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <button 
+                      className="btn" 
+                      onClick={() => { setExaggeration(0.7); setCfgWeight(0.5); setTemperature(0.8); }}
+                      title="Auf Neutralwerte zurücksetzen"
+                      style={{ padding: '0.4rem 0.7rem', fontSize: '0.8rem' }}
+                    >
+                      ↺ Reset
+                    </button>
+                    <button 
+                      className={`btn btn-primary ${isGeneratingTTS ? '' : 'pulse'}`} 
+                      onClick={handleSynthesize}
+                      disabled={isGeneratingTTS || !ttsText.trim()}
+                    >
+                      {isGeneratingTTS ? <div className="loader"></div> : (
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                      {isGeneratingTTS ? 'Synthesizing...' : 'Synthesize Speech'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -508,15 +517,24 @@ function App() {
                       </div>
                     </div>
                   </div>
-
-                  <button 
-                    className={`btn btn-primary ${isGeneratingPrivacy ? '' : 'pulse'}`}
-                    onClick={handlePrivacySynthesize}
-                    disabled={isGeneratingPrivacy || !privacyText.trim() || !privacyFile}
-                  >
-                    {isGeneratingPrivacy ? <div className="loader"></div> : '🔒'}
-                    {isGeneratingPrivacy ? 'Synthesizing...' : 'Synthesize (Private)'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <button 
+                      className="btn" 
+                      onClick={() => { setPrivacyExagg(0.7); setPrivacyCfg(0.5); setPrivacyTemp(0.8); }}
+                      title="Auf Neutralwerte zurücksetzen"
+                      style={{ padding: '0.4rem 0.7rem', fontSize: '0.8rem' }}
+                    >
+                      ↺ Reset
+                    </button>
+                    <button 
+                      className={`btn btn-primary ${isGeneratingPrivacy ? '' : 'pulse'}`}
+                      onClick={handlePrivacySynthesize}
+                      disabled={isGeneratingPrivacy || !privacyText.trim() || !privacyFile}
+                    >
+                      {isGeneratingPrivacy ? <div className="loader"></div> : '🔒'}
+                      {isGeneratingPrivacy ? 'Synthesizing...' : 'Synthesize (Private)'}
+                    </button>
+                  </div>
                 </div>
 
                 {privacyAudioUrl && (
