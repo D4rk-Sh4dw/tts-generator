@@ -29,28 +29,23 @@ export async function generateOllamaText(prompt, model = 'gpt-oss') {
   }
 }
 
-// Upload a voice to Chatterbox TTS
-export async function uploadVoice(file, voiceName, language, transcript) {
+// Upload a voice to the Chatterbox Voice Library
+// Endpoint: POST /voices  (multipart: voice_file, voice_name, language)
+export async function uploadVoice(file, voiceName, language) {
   try {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', voiceName);
-    if (transcript) formData.append('text', transcript); // Most APIs use 'text' or 'transcript'
+    formData.append('voice_file', file);
+    formData.append('voice_name', voiceName);
     if (language) formData.append('language', language);
 
-    // This endpoint assumes the typical multipart/form-data upload expected by the voice library management
-    const response = await fetch('/v1/voices', {
+    const response = await fetch('/voices', {
       method: 'POST',
       body: formData,
     });
     
     if (!response.ok) {
-        // Fallback for missing or different API endpoints
-        console.warn('Could not cleanly upload to /v1/voices. Mocking success if the backend ignores it.', response.status);
-        if (response.status !== 404 && response.status !== 405) {
-             throw new Error(`Chatterbox Error: ${response.status}`);
-        }
-        return { success: true, name: voiceName, mock: true };
+      const errorText = await response.text();
+      throw new Error(`Voice upload failed (${response.status}): ${errorText}`);
     }
     
     return await response.json();
@@ -61,27 +56,28 @@ export async function uploadVoice(file, voiceName, language, transcript) {
 }
 
 // Fetch list of available voices from Chatterbox
+// Endpoint: GET /voices
 export async function getVoices() {
-    try {
-        const response = await fetch('/v1/models');
-        if (!response.ok) throw new Error('Failed to load models');
-        const data = await response.json();
-        // Return dummy array if it doesn't match the expected format
-        return data.data || [];
-    } catch (e) {
-        console.warn("Could not fetch models", e);
-        return [];
-    }
+  try {
+    const response = await fetch('/voices');
+    if (!response.ok) throw new Error('Failed to load voices');
+    const data = await response.json();
+    return data.voices || data || [];
+  } catch (e) {
+    console.warn("Could not fetch voices", e);
+    return [];
+  }
 }
 
-// Synthesize speech using Chatterbox TTS
+// Synthesize speech using Chatterbox TTS (JSON mode - uses voice library name)
+// Endpoint: POST /v1/audio/speech
 export async function synthesizeSpeech(text, voiceName, exaggeration = 0.7, temperature = 0.8, language) {
   try {
     const bodyArgs = {
-        input: text,
-        voice: voiceName || 'alloy',
-        exaggeration: parseFloat(exaggeration),
-        temperature: parseFloat(temperature),
+      input: text,
+      voice: voiceName || 'alloy',
+      exaggeration: parseFloat(exaggeration),
+      temperature: parseFloat(temperature),
     };
     if (language) bodyArgs.language = language;
 
@@ -103,6 +99,35 @@ export async function synthesizeSpeech(text, voiceName, exaggeration = 0.7, temp
     return window.URL.createObjectURL(blob);
   } catch (error) {
     console.error("Error synthesizing speech:", error);
+    throw error;
+  }
+}
+
+// Quick synthesize with inline voice upload (no library needed)
+// Endpoint: POST /v1/audio/speech/upload
+export async function synthesizeWithUpload(text, voiceFile, exaggeration = 0.7, temperature = 0.8, language) {
+  try {
+    const formData = new FormData();
+    formData.append('input', text);
+    formData.append('voice_file', voiceFile);
+    formData.append('exaggeration', String(exaggeration));
+    formData.append('temperature', String(temperature));
+    if (language) formData.append('language', language);
+
+    const response = await fetch('/v1/audio/speech/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TTS Upload Error: ${response.status} ${errorText}`);
+    }
+
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error synthesizing with upload:", error);
     throw error;
   }
 }

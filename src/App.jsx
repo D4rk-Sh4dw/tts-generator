@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { generateOllamaText, uploadVoice, synthesizeSpeech } from './services/api';
+import { generateOllamaText, uploadVoice, synthesizeSpeech, getVoices } from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat'
@@ -8,7 +8,6 @@ function App() {
   // Voice Management State
   const [voiceName, setVoiceName] = useState('');
   const [voiceFile, setVoiceFile] = useState(null);
-  const [voiceTranscript, setVoiceTranscript] = useState('');
   const [uploadLanguage, setUploadLanguage] = useState('en');
   const [availableVoices, setAvailableVoices] = useState([{ id: 'alloy', name: 'Default (alloy)' }]);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
@@ -36,25 +35,43 @@ function App() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Fetch available voices on mount
+  useEffect(() => {
+    async function fetchVoices() {
+      try {
+        const voices = await getVoices();
+        if (voices && voices.length > 0) {
+          const mapped = voices.map(v => ({
+            id: typeof v === 'string' ? v : (v.name || v.voice_name || v.id),
+            name: typeof v === 'string' ? v : (v.name || v.voice_name || v.id),
+          }));
+          setAvailableVoices([{ id: 'alloy', name: 'Default (alloy)' }, ...mapped]);
+        }
+      } catch (e) {
+        // Silently ignore if Chatterbox is not yet running
+      }
+    }
+    fetchVoices();
+  }, []);
+
   const handleVoiceUpload = async () => {
-    if (!voiceFile || !voiceName.trim() || !voiceTranscript.trim()) {
-      alert("Please provide a name, an audio file, and the spoken text (transcript).");
+    if (!voiceFile || !voiceName.trim()) {
+      alert("Please provide a voice name and an audio file.");
       return;
     }
     
     setIsUploading(true);
     try {
-      await uploadVoice(voiceFile, voiceName.trim(), uploadLanguage, voiceTranscript.trim());
-      // Add to local list of voices to simulate successful registration
+      await uploadVoice(voiceFile, voiceName.trim(), uploadLanguage);
+      // Add to local list of voices
       const newVoice = { id: voiceName.trim(), name: voiceName.trim() };
       setAvailableVoices(prev => [...prev, newVoice]);
       setSelectedVoice(voiceName.trim());
       setVoiceName('');
       setVoiceFile(null);
-      setVoiceTranscript('');
-      alert("Voice uploaded/registered successfully!");
+      alert("Voice uploaded successfully!");
     } catch (err) {
-      alert("Failed to upload voice. Make sure Chatterbox API supports this upload route.");
+      alert(`Upload failed: ${err.message}`);
     } finally {
       setIsUploading(false);
     }
@@ -134,16 +151,6 @@ function App() {
                   accept="audio/*" 
                   onChange={(e) => setVoiceFile(e.target.files[0])}
                   style={{ background: 'transparent', padding: '0.5rem 0' }} 
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Transcript (Spoken text in audio)</label>
-                <textarea 
-                  placeholder="Enter the exact text spoken in the audio file..."
-                  value={voiceTranscript}
-                  onChange={(e) => setVoiceTranscript(e.target.value)}
-                  style={{ minHeight: '80px', fontSize: '0.9rem' }}
                 />
               </div>
 
