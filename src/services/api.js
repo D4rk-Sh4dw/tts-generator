@@ -70,6 +70,24 @@ export async function getVoices() {
   }
 }
 
+// Delete a voice from the Chatterbox Voice Library
+// Endpoint: DELETE /voices/{voice_name}
+export async function deleteVoice(voiceName) {
+  try {
+    const response = await fetch(`/voices/${encodeURIComponent(voiceName)}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Delete failed (${response.status}): ${errorText}`);
+    }
+    return true;
+  } catch (error) {
+    console.error("Error deleting voice:", error);
+    throw error;
+  }
+}
+
 // Synthesize speech using Chatterbox TTS (JSON mode - uses voice library name)
 // Endpoint: POST /v1/audio/speech
 export async function synthesizeSpeech(text, voiceName, exaggeration = 0.7, temperature = 0.8, language) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { chatOllama, uploadVoice, synthesizeSpeech, getVoices } from './services/api';
+import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, getVoices } from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat'
@@ -119,6 +119,22 @@ function App() {
     setActiveTab('editor');
   };
 
+  const handleDeleteVoice = async () => {
+    if (selectedVoice === 'alloy') {
+      alert('The default voice cannot be deleted.');
+      return;
+    }
+    if (!confirm(`Delete voice "${selectedVoice}"?`)) return;
+
+    try {
+      await deleteVoice(selectedVoice);
+      setAvailableVoices(prev => prev.filter(v => v.id !== selectedVoice));
+      setSelectedVoice('alloy');
+    } catch (err) {
+      alert(`Could not delete voice: ${err.message}`);
+    }
+  };
+
   const handleSynthesize = async () => {
     if (!ttsText.trim()) return;
 
@@ -204,11 +220,23 @@ function App() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem' }}>Select Voice for TTS</label>
-              <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)}>
-                {availableVoices.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ flex: 1 }}>
+                  {availableVoices.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+                {selectedVoice !== 'alloy' && (
+                  <button 
+                    className="btn" 
+                    onClick={handleDeleteVoice}
+                    title="Delete selected voice"
+                    style={{ padding: '0.5rem', color: 'var(--danger)' }}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </aside>
