@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { generateOllamaText, uploadVoice, synthesizeSpeech, getVoices } from './services/api';
+import { chatOllama, uploadVoice, synthesizeSpeech, getVoices } from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat'
@@ -14,8 +14,9 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
 
   // Chat/LLM State
+  const SYSTEM_PROMPT = 'You are a helpful AI assistant that collaboratively writes text with the user. The text will later be synthesized into speech. Provide clear, well-structured drafts and suggestions. Answer in the language the user writes in.';
   const [chatMessages, setChatMessages] = useState([
-    { role: 'ai', text: "Hello! I'm your AI co-pilot powered by local Ollama. What would you like to say?" }
+    { role: 'ai', text: "Hello! I'm your AI co-pilot powered by local Ollama. Tell me what text you'd like to create — I'll remember our full conversation!" }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [ollamaModel, setOllamaModel] = useState('gpt-oss');
@@ -82,18 +83,35 @@ function App() {
 
     const userMsg = chatInput.trim();
     setChatInput('');
-    setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    const newMessages = [...chatMessages, { role: 'user', text: userMsg }];
+    setChatMessages(newMessages);
     
     setIsGeneratingLLM(true);
     try {
-      const prompt = `Context: We are collaboratively writing a text that will be synthesized into speech. The user says: "${userMsg}". Please provide the next draft or suggestion.`;
-      const response = await generateOllamaText(prompt, ollamaModel);
+      // Build Ollama message history from our chat state
+      const ollamaMessages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...newMessages
+          .filter(m => m.role === 'user' || m.role === 'ai')
+          .map(m => ({
+            role: m.role === 'ai' ? 'assistant' : 'user',
+            content: m.text,
+          }))
+      ];
+      
+      const response = await chatOllama(ollamaMessages, ollamaModel);
       setChatMessages(prev => [...prev, { role: 'ai', text: response }]);
     } catch (err) {
       setChatMessages(prev => [...prev, { role: 'ai', text: `Error: Could not reach Ollama model '${ollamaModel}'. Check if it's running locally.` }]);
     } finally {
       setIsGeneratingLLM(false);
     }
+  };
+
+  const handleClearChat = () => {
+    setChatMessages([
+      { role: 'ai', text: "Context cleared! Let's start fresh. What text would you like to create?" }
+    ]);
   };
 
   const moveChatToEditor = (text) => {
@@ -219,15 +237,20 @@ function App() {
             
             {activeTab === 'chat' && (
               <div className="ai-chat-section">
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }}>
-                  <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Ollama Model:</label>
-                  <input 
-                    type="text" 
-                    value={ollamaModel}
-                    onChange={(e) => setOllamaModel(e.target.value)}
-                    placeholder="e.g. gpt-oss, llama3..."
-                    style={{ width: '200px', padding: '0.4rem', fontSize: '0.9rem' }}
-                  />
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Ollama Model:</label>
+                    <input 
+                      type="text" 
+                      value={ollamaModel}
+                      onChange={(e) => setOllamaModel(e.target.value)}
+                      placeholder="e.g. gpt-oss, llama3..."
+                      style={{ width: '200px', padding: '0.4rem', fontSize: '0.9rem' }}
+                    />
+                  </div>
+                  <button className="btn" onClick={handleClearChat} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                    🗑️ Clear Context
+                  </button>
                 </div>
                 
                 <div className="chat-container">

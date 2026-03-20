@@ -2,17 +2,18 @@
  * API Service for Chatterbox Synth
  */
 
-// Generate text using Ollama
-export async function generateOllamaText(prompt, model = 'gpt-oss') {
+// Generate text using Ollama (with full conversation history)
+// messages: array of { role: 'user'|'assistant'|'system', content: string }
+export async function chatOllama(messages, model = 'gpt-oss') {
   try {
-    const response = await fetch('/api/generate', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model,
-        prompt,
+        messages,
         stream: false,
       }),
     });
@@ -22,7 +23,7 @@ export async function generateOllamaText(prompt, model = 'gpt-oss') {
     }
     
     const data = await response.json();
-    return data.response;
+    return data.message?.content || data.response || '';
   } catch (error) {
     console.error("Error calling Ollama:", error);
     throw error;
