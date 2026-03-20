@@ -2,7 +2,7 @@ import os
 import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Chatterbox Synth Proxy")
@@ -33,10 +33,9 @@ async def proxy_ollama(request: Request):
         content=body,
     )
     resp = await client.send(req, stream=True)
-    return Response(
-        content=resp.aiter_raw(),
+    return StreamingResponse(
+        resp.aiter_raw(),
         status_code=resp.status_code,
-        headers=dict(resp.headers),
         media_type=resp.headers.get("content-type")
     )
 
@@ -52,10 +51,9 @@ async def proxy_chatterbox(request: Request, path: str):
         content=body,
     )
     resp = await client.send(req, stream=True)
-    return Response(
-        content=resp.aiter_raw(),
+    return StreamingResponse(
+        resp.aiter_raw(),
         status_code=resp.status_code,
-        headers=dict(resp.headers),
         media_type=resp.headers.get("content-type")
     )
 

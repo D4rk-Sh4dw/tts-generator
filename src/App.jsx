@@ -8,6 +8,7 @@ function App() {
   // Voice Management State
   const [voiceName, setVoiceName] = useState('');
   const [voiceFile, setVoiceFile] = useState(null);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
   const [uploadLanguage, setUploadLanguage] = useState('en');
   const [availableVoices, setAvailableVoices] = useState([{ id: 'alloy', name: 'Default (alloy)' }]);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
@@ -36,20 +37,21 @@ function App() {
   }, [chatMessages]);
 
   const handleVoiceUpload = async () => {
-    if (!voiceFile || !voiceName.trim()) {
-      alert("Please provide both a name and an audio file.");
+    if (!voiceFile || !voiceName.trim() || !voiceTranscript.trim()) {
+      alert("Please provide a name, an audio file, and the spoken text (transcript).");
       return;
     }
     
     setIsUploading(true);
     try {
-      await uploadVoice(voiceFile, voiceName.trim(), uploadLanguage);
+      await uploadVoice(voiceFile, voiceName.trim(), uploadLanguage, voiceTranscript.trim());
       // Add to local list of voices to simulate successful registration
       const newVoice = { id: voiceName.trim(), name: voiceName.trim() };
       setAvailableVoices(prev => [...prev, newVoice]);
       setSelectedVoice(voiceName.trim());
       setVoiceName('');
       setVoiceFile(null);
+      setVoiceTranscript('');
       alert("Voice uploaded/registered successfully!");
     } catch (err) {
       alert("Failed to upload voice. Make sure Chatterbox API supports this upload route.");
@@ -132,6 +134,16 @@ function App() {
                   accept="audio/*" 
                   onChange={(e) => setVoiceFile(e.target.files[0])}
                   style={{ background: 'transparent', padding: '0.5rem 0' }} 
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Transcript (Spoken text in audio)</label>
+                <textarea 
+                  placeholder="Enter the exact text spoken in the audio file..."
+                  value={voiceTranscript}
+                  onChange={(e) => setVoiceTranscript(e.target.value)}
+                  style={{ minHeight: '80px', fontSize: '0.9rem' }}
                 />
               </div>
 

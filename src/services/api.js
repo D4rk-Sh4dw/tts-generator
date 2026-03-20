@@ -30,11 +30,12 @@ export async function generateOllamaText(prompt, model = 'gpt-oss') {
 }
 
 // Upload a voice to Chatterbox TTS
-export async function uploadVoice(file, voiceName, language) {
+export async function uploadVoice(file, voiceName, language, transcript) {
   try {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', voiceName);
+    if (transcript) formData.append('text', transcript); // Most APIs use 'text' or 'transcript'
     if (language) formData.append('language', language);
 
     // This endpoint assumes the typical multipart/form-data upload expected by the voice library management
