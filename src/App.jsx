@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, getVoices } from './services/api';
+import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices } from './services/api';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat'
+  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy'
 
   // Voice Management State
   const [voiceName, setVoiceName] = useState('');
@@ -30,6 +30,15 @@ function App() {
   const [temperature, setTemperature] = useState(0.8);
   const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
+
+  // Privacy Mode State
+  const [privacyFile, setPrivacyFile] = useState(null);
+  const [privacyText, setPrivacyText] = useState('');
+  const [privacyLanguage, setPrivacyLanguage] = useState('en');
+  const [privacyExagg, setPrivacyExagg] = useState(0.7);
+  const [privacyTemp, setPrivacyTemp] = useState(0.8);
+  const [isGeneratingPrivacy, setIsGeneratingPrivacy] = useState(false);
+  const [privacyAudioUrl, setPrivacyAudioUrl] = useState(null);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -150,6 +159,23 @@ function App() {
     }
   };
 
+  const handlePrivacySynthesize = async () => {
+    if (!privacyFile || !privacyText.trim()) {
+      alert('Please provide both a voice file and text to synthesize.');
+      return;
+    }
+    setIsGeneratingPrivacy(true);
+    setPrivacyAudioUrl(null);
+    try {
+      const blobUrl = await synthesizeWithUpload(privacyText, privacyFile, privacyExagg, privacyTemp, privacyLanguage);
+      setPrivacyAudioUrl(blobUrl);
+    } catch (err) {
+      alert(`Privacy TTS failed: ${err.message}`);
+    } finally {
+      setIsGeneratingPrivacy(false);
+    }
+  };
+
   return (
     <>
       <header className="app-header">
@@ -253,6 +279,13 @@ function App() {
               TTS Editor
             </button>
             <button 
+              className={`btn ${activeTab === 'privacy' ? 'btn-primary' : ''}`}
+              onClick={() => setActiveTab('privacy')}
+              style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
+            >
+              🔒 Privacy Mode
+            </button>
+            <button 
               className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`}
               onClick={() => setActiveTab('chat')}
               style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
@@ -333,7 +366,7 @@ function App() {
                 />
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Language</label>
                       <select 
@@ -382,6 +415,81 @@ function App() {
                     {isGeneratingTTS ? 'Synthesizing...' : 'Synthesize Speech'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'privacy' && (
+              <div className="privacy-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.85rem' }}>
+                  🔒 <strong>Privacy Mode</strong> — Your voice file is sent directly for synthesis and is <em>not</em> stored on the server.
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Voice File (.mp3, .wav)</label>
+                  <input 
+                    type="file" accept="audio/*" 
+                    onChange={(e) => setPrivacyFile(e.target.files[0])}
+                    style={{ background: 'transparent', padding: '0.5rem 0' }} 
+                  />
+                </div>
+
+                <textarea 
+                  placeholder="Enter the text to synthesize with the uploaded voice..."
+                  style={{ minHeight: '160px', fontSize: '1.1rem', lineHeight: '1.6' }}
+                  value={privacyText}
+                  onChange={(e) => setPrivacyText(e.target.value)}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Language</label>
+                      <select value={privacyLanguage} onChange={(e) => setPrivacyLanguage(e.target.value)} style={{ width: '120px', padding: '0.5rem' }}>
+                        <option value="en">English</option>
+                        <option value="de">German</option>
+                        <option value="fr">French</option>
+                        <option value="es">Spanish</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="pl">Polish</option>
+                        <option value="hi">Hindi</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Exaggeration</label>
+                      <input type="number" min="0.25" max="2.0" step="0.05" 
+                        value={privacyExagg} onChange={(e) => setPrivacyExagg(parseFloat(e.target.value))} 
+                        style={{ width: '100px', padding: '0.5rem' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Temperature</label>
+                      <input type="number" min="0.05" max="5.0" step="0.05" 
+                        value={privacyTemp} onChange={(e) => setPrivacyTemp(parseFloat(e.target.value))} 
+                        style={{ width: '100px', padding: '0.5rem' }} />
+                    </div>
+                  </div>
+
+                  <button 
+                    className={`btn btn-primary ${isGeneratingPrivacy ? '' : 'pulse'}`}
+                    onClick={handlePrivacySynthesize}
+                    disabled={isGeneratingPrivacy || !privacyText.trim() || !privacyFile}
+                  >
+                    {isGeneratingPrivacy ? <div className="loader"></div> : '🔒'}
+                    {isGeneratingPrivacy ? 'Synthesizing...' : 'Synthesize (Private)'}
+                  </button>
+                </div>
+
+                {privacyAudioUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <audio controls src={privacyAudioUrl} style={{ flex: 1 }} />
+                    <a href={privacyAudioUrl} download="private_output.wav" className="btn">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Download
+                    </a>
+                  </div>
+                )}
               </div>
             )}
             
