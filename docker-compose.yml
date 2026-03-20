@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Use host.docker.internal to reach services running on the host
+      - OLLAMA_TARGET=http://host.docker.internal:11434
+      - CHATTERBOX_TARGET=http://host.docker.internal:4123
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
