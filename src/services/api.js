@@ -90,12 +90,13 @@ export async function deleteVoice(voiceName) {
 
 // Synthesize speech using Chatterbox TTS (JSON mode - uses voice library name)
 // Endpoint: POST /v1/audio/speech
-export async function synthesizeSpeech(text, voiceName, exaggeration = 0.7, temperature = 0.8, language) {
+export async function synthesizeSpeech(text, voiceName, exaggeration = 0.7, cfgWeight = 0.5, temperature = 0.8, language) {
   try {
     const bodyArgs = {
       input: text,
       voice: voiceName || 'alloy',
       exaggeration: parseFloat(exaggeration),
+      cfg_weight: parseFloat(cfgWeight),
       temperature: parseFloat(temperature),
     };
     if (language) bodyArgs.language = language;
@@ -124,12 +125,13 @@ export async function synthesizeSpeech(text, voiceName, exaggeration = 0.7, temp
 
 // Quick synthesize with inline voice upload (no library needed)
 // Endpoint: POST /v1/audio/speech/upload
-export async function synthesizeWithUpload(text, voiceFile, exaggeration = 0.7, temperature = 0.8, language) {
+export async function synthesizeWithUpload(text, voiceFile, exaggeration = 0.7, cfgWeight = 0.5, temperature = 0.8, language) {
   try {
     const formData = new FormData();
     formData.append('input', text);
     formData.append('voice_file', voiceFile);
     formData.append('exaggeration', String(exaggeration));
+    formData.append('cfg_weight', String(cfgWeight));
     formData.append('temperature', String(temperature));
     if (language) formData.append('language', language);
 

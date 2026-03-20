@@ -27,6 +27,7 @@ function App() {
   const [ttsText, setTtsText] = useState('');
   const [ttsLanguage, setTtsLanguage] = useState('en');
   const [exaggeration, setExaggeration] = useState(0.7);
+  const [cfgWeight, setCfgWeight] = useState(0.5);
   const [temperature, setTemperature] = useState(0.8);
   const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -36,6 +37,7 @@ function App() {
   const [privacyText, setPrivacyText] = useState('');
   const [privacyLanguage, setPrivacyLanguage] = useState('en');
   const [privacyExagg, setPrivacyExagg] = useState(0.7);
+  const [privacyCfg, setPrivacyCfg] = useState(0.5);
   const [privacyTemp, setPrivacyTemp] = useState(0.8);
   const [isGeneratingPrivacy, setIsGeneratingPrivacy] = useState(false);
   const [privacyAudioUrl, setPrivacyAudioUrl] = useState(null);
@@ -150,7 +152,7 @@ function App() {
     setIsGeneratingTTS(true);
     setAudioUrl(null);
     try {
-      const blobUrl = await synthesizeSpeech(ttsText, selectedVoice, exaggeration, temperature, ttsLanguage);
+      const blobUrl = await synthesizeSpeech(ttsText, selectedVoice, exaggeration, cfgWeight, temperature, ttsLanguage);
       setAudioUrl(blobUrl);
     } catch (err) {
       alert(`TTS Generation failed: ${err.message}`);
@@ -167,7 +169,7 @@ function App() {
     setIsGeneratingPrivacy(true);
     setPrivacyAudioUrl(null);
     try {
-      const blobUrl = await synthesizeWithUpload(privacyText, privacyFile, privacyExagg, privacyTemp, privacyLanguage);
+      const blobUrl = await synthesizeWithUpload(privacyText, privacyFile, privacyExagg, privacyCfg, privacyTemp, privacyLanguage);
       setPrivacyAudioUrl(blobUrl);
     } catch (err) {
       alert(`Privacy TTS failed: ${err.message}`);
@@ -384,19 +386,27 @@ function App() {
                       </select>
                     </div>                  
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Exaggeration</label>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Emotionale Intensität: höher = aufgeregter, dramatischer">🎭 Emotion</label>
                       <input 
                         type="number" min="0.25" max="2.0" step="0.05" 
                         value={exaggeration} onChange={(e) => setExaggeration(parseFloat(e.target.value))}
-                        style={{ width: '100px', padding: '0.5rem' }} 
+                        style={{ width: '80px', padding: '0.5rem' }} 
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Temperature</label>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Sprechtempo: 0 = schnell/dynamisch, 1 = langsam/kontrolliert">🏃 Pace</label>
+                      <input 
+                        type="number" min="0.0" max="1.0" step="0.05" 
+                        value={cfgWeight} onChange={(e) => setCfgWeight(parseFloat(e.target.value))}
+                        style={{ width: '80px', padding: '0.5rem' }} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Variabilität: höher = zufälliger/natürlicher, niedriger = konsistenter">🎲 Variability</label>
                       <input 
                         type="number" min="0.05" max="5.0" step="0.05" 
                         value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                        style={{ width: '100px', padding: '0.5rem' }} 
+                        style={{ width: '80px', padding: '0.5rem' }} 
                       />
                     </div>
                   </div>
@@ -456,16 +466,22 @@ function App() {
                       </select>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Exaggeration</label>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Emotionale Intensität: höher = aufgeregter, dramatischer">🎭 Emotion</label>
                       <input type="number" min="0.25" max="2.0" step="0.05" 
                         value={privacyExagg} onChange={(e) => setPrivacyExagg(parseFloat(e.target.value))} 
-                        style={{ width: '100px', padding: '0.5rem' }} />
+                        style={{ width: '80px', padding: '0.5rem' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Temperature</label>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Sprechtempo: 0 = schnell/dynamisch, 1 = langsam/kontrolliert">🏃 Pace</label>
+                      <input type="number" min="0.0" max="1.0" step="0.05" 
+                        value={privacyCfg} onChange={(e) => setPrivacyCfg(parseFloat(e.target.value))} 
+                        style={{ width: '80px', padding: '0.5rem' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Variabilität: höher = zufälliger/natürlicher, niedriger = konsistenter">🎲 Variability</label>
                       <input type="number" min="0.05" max="5.0" step="0.05" 
                         value={privacyTemp} onChange={(e) => setPrivacyTemp(parseFloat(e.target.value))} 
-                        style={{ width: '100px', padding: '0.5rem' }} />
+                        style={{ width: '80px', padding: '0.5rem' }} />
                     </div>
                   </div>
 
