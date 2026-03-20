@@ -21,8 +21,8 @@ CHATTERBOX_TARGET = os.getenv("CHATTERBOX_TARGET", "http://host.docker.internal:
 # Increased timeout: Ollama & TTS can take a long time
 client = httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0))
 
-# Headers to strip when forwarding (hop-by-hop or conflicting)
-HOP_BY_HOP = {"host", "connection", "keep-alive", "transfer-encoding", "te", "trailers", "upgrade", "content-length"}
+# Headers to strip when forwarding (hop-by-hop, conflicting, or origin-based that cause 403)
+HOP_BY_HOP = {"host", "connection", "keep-alive", "transfer-encoding", "te", "trailers", "upgrade", "content-length", "origin", "referer"}
 
 
 def _forwarded_headers(request: Request) -> dict:
