@@ -387,27 +387,36 @@ function App() {
                     </div>                  
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Emotionale Intensität: höher = aufgeregter, dramatischer">🎭 Emotion</label>
-                      <input 
-                        type="number" min="0.25" max="2.0" step="0.05" 
-                        value={exaggeration} onChange={(e) => setExaggeration(parseFloat(e.target.value))}
-                        style={{ width: '80px', padding: '0.5rem' }} 
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0.25" max="2.0" step="0.05" value={exaggeration}
+                          onChange={(e) => setExaggeration(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0.25" max="2.0" step="0.05" value={exaggeration}
+                          onChange={(e) => setExaggeration(Math.min(2.0, Math.max(0.25, parseFloat(e.target.value) || 0.25)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Sprechtempo: 0 = schnell/dynamisch, 1 = langsam/kontrolliert">🏃 Pace</label>
-                      <input 
-                        type="number" min="0.0" max="1.0" step="0.05" 
-                        value={cfgWeight} onChange={(e) => setCfgWeight(parseFloat(e.target.value))}
-                        style={{ width: '80px', padding: '0.5rem' }} 
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0" max="1.0" step="0.05" value={cfgWeight}
+                          onChange={(e) => setCfgWeight(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0" max="1.0" step="0.05" value={cfgWeight}
+                          onChange={(e) => setCfgWeight(Math.min(1.0, Math.max(0, parseFloat(e.target.value) || 0)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Variabilität: höher = zufälliger/natürlicher, niedriger = konsistenter">🎲 Variability</label>
-                      <input 
-                        type="number" min="0.05" max="5.0" step="0.05" 
-                        value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                        style={{ width: '80px', padding: '0.5rem' }} 
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0.05" max="5.0" step="0.05" value={temperature}
+                          onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0.05" max="5.0" step="0.05" value={temperature}
+                          onChange={(e) => setTemperature(Math.min(5.0, Math.max(0.05, parseFloat(e.target.value) || 0.05)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
                     </div>
                   </div>
                   
@@ -467,21 +476,36 @@ function App() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Emotionale Intensität: höher = aufgeregter, dramatischer">🎭 Emotion</label>
-                      <input type="number" min="0.25" max="2.0" step="0.05" 
-                        value={privacyExagg} onChange={(e) => setPrivacyExagg(parseFloat(e.target.value))} 
-                        style={{ width: '80px', padding: '0.5rem' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0.25" max="2.0" step="0.05" value={privacyExagg}
+                          onChange={(e) => setPrivacyExagg(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0.25" max="2.0" step="0.05" value={privacyExagg}
+                          onChange={(e) => setPrivacyExagg(Math.min(2.0, Math.max(0.25, parseFloat(e.target.value) || 0.25)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Sprechtempo: 0 = schnell/dynamisch, 1 = langsam/kontrolliert">🏃 Pace</label>
-                      <input type="number" min="0.0" max="1.0" step="0.05" 
-                        value={privacyCfg} onChange={(e) => setPrivacyCfg(parseFloat(e.target.value))} 
-                        style={{ width: '80px', padding: '0.5rem' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0" max="1.0" step="0.05" value={privacyCfg}
+                          onChange={(e) => setPrivacyCfg(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0" max="1.0" step="0.05" value={privacyCfg}
+                          onChange={(e) => setPrivacyCfg(Math.min(1.0, Math.max(0, parseFloat(e.target.value) || 0)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Variabilität: höher = zufälliger/natürlicher, niedriger = konsistenter">🎲 Variability</label>
-                      <input type="number" min="0.05" max="5.0" step="0.05" 
-                        value={privacyTemp} onChange={(e) => setPrivacyTemp(parseFloat(e.target.value))} 
-                        style={{ width: '80px', padding: '0.5rem' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0.05" max="5.0" step="0.05" value={privacyTemp}
+                          onChange={(e) => setPrivacyTemp(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0.05" max="5.0" step="0.05" value={privacyTemp}
+                          onChange={(e) => setPrivacyTemp(Math.min(5.0, Math.max(0.05, parseFloat(e.target.value) || 0.05)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
                     </div>
                   </div>
 
