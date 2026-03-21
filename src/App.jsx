@@ -3,7 +3,7 @@ import './index.css';
 import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices, getQwenVoices, synthesizeQwen } from './services/api';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy', 'qwen'
+  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy', 'qwen', 'studio'
 
   // Voice Management State
   const [voiceName, setVoiceName] = useState('');
@@ -331,6 +331,13 @@ function App() {
               style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
             >
               🧠 Qwen TTS
+            </button>
+            <button 
+              className={`btn ${activeTab === 'studio' ? 'btn-primary' : ''}`}
+              onClick={() => setActiveTab('studio')}
+              style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
+            >
+              🎨 Voice Studio
             </button>
             <button 
               className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`}
@@ -688,6 +695,20 @@ function App() {
                     </a>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'studio' && (
+              <div className="studio-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.85rem' }}>
+                  🎨 <strong>Qwen Voice Studio</strong> — Erstelle Stimmprofile per Voice Design, Voice Cloning oder Custom Voice. Profile können dann im Qwen TTS Tab unter "Clone" genutzt werden.
+                </div>
+                <iframe
+                  src={`http://${window.location.hostname}:8880/voice-studio`}
+                  style={{ width: '100%', minHeight: '700px', border: 'none', borderRadius: '8px', background: '#1a1a2e' }}
+                  title="Qwen Voice Studio"
+                  allow="microphone"
+                />
               </div>
             )}
             

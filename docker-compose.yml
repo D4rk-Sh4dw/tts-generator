@@ -22,6 +22,7 @@ services:
       - "8880:8880"
     environment:
       - TTS_BACKEND=official
+      - TTS_MODEL_NAME=Qwen/Qwen3-TTS-12Hz-1.7B-Base
       - TTS_WARMUP_ON_START=false
       - ENABLE_VOICE_STUDIO=true
       - CORS_ORIGINS=*
