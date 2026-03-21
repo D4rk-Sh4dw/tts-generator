@@ -26,6 +26,8 @@ services:
       - CORS_ORIGINS=*
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ipc: host
+    shm_size: '4gb'
     volumes:
       - huggingface_cache:/root/.cache/huggingface
       - voice_library:/app/voice_library
