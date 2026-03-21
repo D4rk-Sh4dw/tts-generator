@@ -24,6 +24,7 @@ RUN pip install uv
 
 # Copy python project config and dependencies list
 COPY pyproject.toml README.md ./
+COPY chatterbox_synth ./chatterbox_synth
 
 # Install dependencies using uv. Install torch with CUDA 12.1 index first.
 RUN uv pip install --system torch torchaudio --index-url https://download.pytorch.org/whl/cu121
