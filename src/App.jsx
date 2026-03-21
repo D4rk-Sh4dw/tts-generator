@@ -43,10 +43,9 @@ function App() {
   const [privacyAudioUrl, setPrivacyAudioUrl] = useState(null);
 
   // Qwen-TTS State
-  const [qwenMode, setQwenMode] = useState('preset'); // 'preset', 'design', 'clone'
-  const [qwenPresetVoices, setQwenPresetVoices] = useState(['Vivian', 'Ryan', 'Serena', 'Dylan', 'Eric', 'Aiden', 'Luna', 'Harper']);
-  const [qwenSelectedVoice, setQwenSelectedVoice] = useState('Vivian');
-  const [qwenDesignPrompt, setQwenDesignPrompt] = useState('');
+  const [qwenMode, setQwenMode] = useState('preset'); // 'preset', 'clone'
+  const [qwenPresetVoices, setQwenPresetVoices] = useState(['vivian', 'ryan', 'serena', 'dylan', 'eric', 'aiden', 'ono_anna', 'sohee', 'uncle_fu']);
+  const [qwenSelectedVoice, setQwenSelectedVoice] = useState('vivian');
   const [qwenCloneProfile, setQwenCloneProfile] = useState('');
   const [qwenText, setQwenText] = useState('');
   const [qwenSpeed, setQwenSpeed] = useState(1.0);
@@ -198,11 +197,10 @@ function App() {
     if (!qwenText.trim()) return;
     let voice;
     if (qwenMode === 'preset') voice = qwenSelectedVoice;
-    else if (qwenMode === 'design') voice = qwenDesignPrompt;
     else voice = `clone:${qwenCloneProfile}`;
 
     if (!voice || !voice.trim()) {
-      alert('Please provide a voice selection, description, or clone profile name.');
+      alert('Please select a voice or enter a clone profile name.');
       return;
     }
 
@@ -601,12 +599,12 @@ function App() {
             {activeTab === 'qwen' && (
               <div className="qwen-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.85rem' }}>
-                  🧠 <strong>Qwen3-TTS</strong> — Preset voices, voice design via description, or clone from saved profiles.
+                  🧠 <strong>Qwen3-TTS</strong> — 9 Premium-Stimmen oder Stimm-Klone aus dem Voice Studio.
                 </div>
 
                 {/* Mode Selector */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {[['preset', '🎵 Preset'], ['design', '🎨 Voice Design'], ['clone', '📎 Clone']].map(([mode, label]) => (
+                  {[['preset', '🎵 Preset'], ['clone', '📎 Clone']].map(([mode, label]) => (
                     <button key={mode} className={`btn ${qwenMode === mode ? 'btn-primary' : ''}`}
                       onClick={() => setQwenMode(mode)}
                       style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
@@ -624,19 +622,6 @@ function App() {
                         <option key={v} value={v}>{v}</option>
                       ))}
                     </select>
-                  </div>
-                )}
-
-                {/* Voice Design Mode */}
-                {qwenMode === 'design' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Voice Description</label>
-                    <textarea
-                      placeholder='Describe the voice, e.g. "A calm elderly woman with a warm, storytelling tone" or "An excited young man speaking with nervous energy"'
-                      style={{ minHeight: '80px', fontSize: '0.95rem', lineHeight: '1.5' }}
-                      value={qwenDesignPrompt}
-                      onChange={(e) => setQwenDesignPrompt(e.target.value)}
-                    />
                   </div>
                 )}
 
