@@ -17,6 +17,7 @@ app.add_middleware(
 
 OLLAMA_TARGET = os.getenv("OLLAMA_TARGET", "http://host.docker.internal:11434")
 CHATTERBOX_TARGET = os.getenv("CHATTERBOX_TARGET", "http://host.docker.internal:4123")
+QWEN_TTS_TARGET = os.getenv("QWEN_TTS_TARGET", "http://qwen-tts:8880")
 
 # Increased timeout: Ollama & TTS can take a long time
 client = httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0))
@@ -86,6 +87,13 @@ async def proxy_languages(request: Request):
 @app.api_route("/health", methods=["GET"])
 async def proxy_health(request: Request):
     url = f"{CHATTERBOX_TARGET}/health"
+    return await _proxy(request, url)
+
+
+# ── Qwen-TTS proxy (/qwen/v1/*) ─────────────────────────────
+@app.api_route("/qwen/v1/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
+async def proxy_qwen_tts(request: Request, path: str):
+    url = f"{QWEN_TTS_TARGET}/v1/{path}"
     return await _proxy(request, url)
 
 

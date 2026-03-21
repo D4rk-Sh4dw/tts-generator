@@ -152,3 +152,48 @@ export async function synthesizeWithUpload(text, voiceFile, exaggeration = 0.7, 
     throw error;
   }
 }
+
+// ── Qwen-TTS API ──────────────────────────────────────────────
+
+// Get available Qwen voices
+export async function getQwenVoices() {
+  try {
+    const response = await fetch('/qwen/v1/voices');
+    if (!response.ok) throw new Error(`Qwen Voices Error: ${response.status}`);
+    const data = await response.json();
+    // API returns a list of voice objects
+    return data;
+  } catch (error) {
+    console.error("Error fetching Qwen voices:", error);
+    return [];
+  }
+}
+
+// Synthesize speech with Qwen-TTS
+// voice can be: preset name ("Vivian"), description text, or "clone:ProfileName"
+export async function synthesizeQwen(input, voice, speed = 1.0, responseFormat = 'wav') {
+  try {
+    const response = await fetch('/qwen/v1/audio/speech', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'qwen3-tts',
+        input,
+        voice,
+        speed: parseFloat(speed),
+        response_format: responseFormat,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Qwen TTS Error: ${response.status} ${errorText}`);
+    }
+
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error synthesizing with Qwen:", error);
+    throw error;
+  }
+}

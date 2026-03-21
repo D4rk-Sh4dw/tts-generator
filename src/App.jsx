@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices } from './services/api';
+import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices, getQwenVoices, synthesizeQwen } from './services/api';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy'
+  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy', 'qwen'
 
   // Voice Management State
   const [voiceName, setVoiceName] = useState('');
@@ -42,6 +42,17 @@ function App() {
   const [isGeneratingPrivacy, setIsGeneratingPrivacy] = useState(false);
   const [privacyAudioUrl, setPrivacyAudioUrl] = useState(null);
 
+  // Qwen-TTS State
+  const [qwenMode, setQwenMode] = useState('preset'); // 'preset', 'design', 'clone'
+  const [qwenPresetVoices, setQwenPresetVoices] = useState(['Vivian', 'Ryan', 'Serena', 'Dylan', 'Eric', 'Aiden', 'Luna', 'Harper']);
+  const [qwenSelectedVoice, setQwenSelectedVoice] = useState('Vivian');
+  const [qwenDesignPrompt, setQwenDesignPrompt] = useState('');
+  const [qwenCloneProfile, setQwenCloneProfile] = useState('');
+  const [qwenText, setQwenText] = useState('');
+  const [qwenSpeed, setQwenSpeed] = useState(1.0);
+  const [isGeneratingQwen, setIsGeneratingQwen] = useState(false);
+  const [qwenAudioUrl, setQwenAudioUrl] = useState(null);
+
   // Scroll to bottom of chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,6 +75,11 @@ function App() {
       }
     }
     fetchVoices();
+    getQwenVoices().then(data => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setQwenPresetVoices(data.map(v => v.name || v.id || v));
+      }
+    }).catch(() => {/* Qwen not available yet */});
   }, []);
 
   const handleVoiceUpload = async () => {
@@ -178,6 +194,30 @@ function App() {
     }
   };
 
+  const handleQwenSynthesize = async () => {
+    if (!qwenText.trim()) return;
+    let voice;
+    if (qwenMode === 'preset') voice = qwenSelectedVoice;
+    else if (qwenMode === 'design') voice = qwenDesignPrompt;
+    else voice = `clone:${qwenCloneProfile}`;
+
+    if (!voice || !voice.trim()) {
+      alert('Please provide a voice selection, description, or clone profile name.');
+      return;
+    }
+
+    setIsGeneratingQwen(true);
+    setQwenAudioUrl(null);
+    try {
+      const blobUrl = await synthesizeQwen(qwenText, voice, qwenSpeed);
+      setQwenAudioUrl(blobUrl);
+    } catch (err) {
+      alert(`Qwen TTS failed: ${err.message}`);
+    } finally {
+      setIsGeneratingQwen(false);
+    }
+  };
+
   return (
     <>
       <header className="app-header">
@@ -272,7 +312,7 @@ function App() {
         {/* Main Content: LLM Chat & TTS Editor */}
         <section className="main-content">
           
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '-1rem', zIndex: 10 }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '-1rem', zIndex: 10, flexWrap: 'wrap' }}>
             <button 
               className={`btn ${activeTab === 'editor' ? 'btn-primary' : ''}`}
               onClick={() => setActiveTab('editor')}
@@ -286,6 +326,13 @@ function App() {
               style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
             >
               🔒 Privacy Mode
+            </button>
+            <button 
+              className={`btn ${activeTab === 'qwen' ? 'btn-primary' : ''}`}
+              onClick={() => setActiveTab('qwen')}
+              style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
+            >
+              🧠 Qwen TTS
             </button>
             <button 
               className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`}
@@ -541,6 +588,114 @@ function App() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
                     <audio controls src={privacyAudioUrl} style={{ flex: 1 }} />
                     <a href={privacyAudioUrl} download="private_output.wav" className="btn">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Download
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'qwen' && (
+              <div className="qwen-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.85rem' }}>
+                  🧠 <strong>Qwen3-TTS</strong> — Preset voices, voice design via description, or clone from saved profiles.
+                </div>
+
+                {/* Mode Selector */}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {[['preset', '🎵 Preset'], ['design', '🎨 Voice Design'], ['clone', '📎 Clone']].map(([mode, label]) => (
+                    <button key={mode} className={`btn ${qwenMode === mode ? 'btn-primary' : ''}`}
+                      onClick={() => setQwenMode(mode)}
+                      style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Preset Mode */}
+                {qwenMode === 'preset' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Voice</label>
+                    <select value={qwenSelectedVoice} onChange={(e) => setQwenSelectedVoice(e.target.value)}>
+                      {qwenPresetVoices.map(v => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Voice Design Mode */}
+                {qwenMode === 'design' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Voice Description</label>
+                    <textarea
+                      placeholder='Describe the voice, e.g. "A calm elderly woman with a warm, storytelling tone" or "An excited young man speaking with nervous energy"'
+                      style={{ minHeight: '80px', fontSize: '0.95rem', lineHeight: '1.5' }}
+                      value={qwenDesignPrompt}
+                      onChange={(e) => setQwenDesignPrompt(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Clone Mode */}
+                {qwenMode === 'clone' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Clone Profile Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. MyVoiceProfile (saved in Voice Studio)"
+                      value={qwenCloneProfile}
+                      onChange={(e) => setQwenCloneProfile(e.target.value)}
+                    />
+                    <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.3rem' }}>
+                      Create profiles via <a href="/qwen/voice-studio" target="_blank" rel="noopener" style={{ color: 'var(--accent-primary)' }}>Voice Studio</a> (Port 8880)
+                    </p>
+                  </div>
+                )}
+
+                <textarea
+                  placeholder="Enter the text to synthesize with Qwen TTS..."
+                  style={{ minHeight: '140px', fontSize: '1.1rem', lineHeight: '1.6' }}
+                  value={qwenText}
+                  onChange={(e) => setQwenText(e.target.value)}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Sprechgeschwindigkeit: 0.25 = langsam, 4.0 = schnell">⚡ Speed</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <input type="range" min="0.25" max="4.0" step="0.05" value={qwenSpeed}
+                          onChange={(e) => setQwenSpeed(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: 'var(--accent-primary)' }} />
+                        <input type="number" min="0.25" max="4.0" step="0.05" value={qwenSpeed}
+                          onChange={(e) => setQwenSpeed(Math.min(4.0, Math.max(0.25, parseFloat(e.target.value) || 1.0)))}
+                          style={{ width: '60px', padding: '0.3rem', fontSize: '0.8rem', textAlign: 'center' }} />
+                      </div>
+                    </div>
+                    <button className="btn" onClick={() => setQwenSpeed(1.0)}
+                      title="Speed zurücksetzen" style={{ padding: '0.4rem 0.7rem', fontSize: '0.8rem' }}>
+                      ↺ Reset
+                    </button>
+                  </div>
+
+                  <button
+                    className={`btn btn-primary ${isGeneratingQwen ? '' : 'pulse'}`}
+                    onClick={handleQwenSynthesize}
+                    disabled={isGeneratingQwen || !qwenText.trim()}
+                  >
+                    {isGeneratingQwen ? <div className="loader"></div> : '🧠'}
+                    {isGeneratingQwen ? 'Synthesizing...' : 'Synthesize (Qwen)'}
+                  </button>
+                </div>
+
+                {qwenAudioUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <audio controls src={qwenAudioUrl} style={{ flex: 1 }} />
+                    <a href={qwenAudioUrl} download="qwen_output.wav" className="btn">
                       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
