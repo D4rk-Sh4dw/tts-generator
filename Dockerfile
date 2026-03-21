@@ -22,15 +22,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv
 RUN pip install uv
 
-# Copy python project config
-COPY pyproject.toml .
+# Copy python project config and dependencies list
+COPY pyproject.toml README.md ./
 
 # Install dependencies using uv. Install torch with CUDA 12.1 index first.
 RUN uv pip install --system torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 RUN uv pip install --system .
 
 # Copy FastAPI backend
-COPY main.py .
+COPY main.py qwen_engine.py ./
 
 # Copy built frontend assets
 COPY --from=frontend-builder /app/dist /app/dist
