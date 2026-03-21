@@ -170,19 +170,25 @@ export async function getQwenVoices() {
 }
 
 // Synthesize speech with Qwen-TTS
-// voice can be: preset name ("Vivian"), description text, or "clone:ProfileName"
-export async function synthesizeQwen(input, voice, speed = 1.0, responseFormat = 'wav') {
+// voice: preset name ("vivian"), or "clone:ProfileName"
+// instruct: optional style instruction (e.g. "Speak angrily", "With a warm tone")
+export async function synthesizeQwen(input, voice, speed = 1.0, instruct = '', responseFormat = 'wav') {
   try {
+    const body = {
+      model: 'qwen3-tts',
+      input,
+      voice,
+      speed: parseFloat(speed),
+      response_format: responseFormat,
+    };
+    if (instruct && instruct.trim()) {
+      body.instruct = instruct.trim();
+    }
+
     const response = await fetch('/qwen/v1/audio/speech', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'qwen3-tts',
-        input,
-        voice,
-        speed: parseFloat(speed),
-        response_format: responseFormat,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

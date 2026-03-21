@@ -47,6 +47,7 @@ function App() {
   const [qwenPresetVoices, setQwenPresetVoices] = useState(['vivian', 'ryan', 'serena', 'dylan', 'eric', 'aiden', 'ono_anna', 'sohee', 'uncle_fu']);
   const [qwenSelectedVoice, setQwenSelectedVoice] = useState('vivian');
   const [qwenCloneProfile, setQwenCloneProfile] = useState('');
+  const [qwenInstruct, setQwenInstruct] = useState('');
   const [qwenText, setQwenText] = useState('');
   const [qwenSpeed, setQwenSpeed] = useState(1.0);
   const [isGeneratingQwen, setIsGeneratingQwen] = useState(false);
@@ -207,7 +208,7 @@ function App() {
     setIsGeneratingQwen(true);
     setQwenAudioUrl(null);
     try {
-      const blobUrl = await synthesizeQwen(qwenText, voice, qwenSpeed);
+      const blobUrl = await synthesizeQwen(qwenText, voice, qwenSpeed, qwenInstruct);
       setQwenAudioUrl(blobUrl);
     } catch (err) {
       alert(`Qwen TTS failed: ${err.message}`);
@@ -647,6 +648,17 @@ function App() {
                     </p>
                   </div>
                 )}
+
+                {/* Instruct — Style/Emotion directive */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>🎭 Instruct <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(optional)</span></label>
+                  <textarea
+                    placeholder='z.B. "Speak with an angry tone", "Mit aufgeregter Stimme", "Very happy and enthusiastic", "Flüstern"...'
+                    style={{ minHeight: '60px', fontSize: '0.9rem', lineHeight: '1.4' }}
+                    value={qwenInstruct}
+                    onChange={(e) => setQwenInstruct(e.target.value)}
+                  />
+                </div>
 
                 <textarea
                   placeholder="Enter the text to synthesize with Qwen TTS..."
