@@ -8,6 +8,12 @@ dependencies = [
     "fastapi>=0.110.0",
     "httpx>=0.27.0",
     "uvicorn>=0.29.0",
+    "python-multipart",
+    "qwen-tts",
+    "transformers",
+    "accelerate",
+    "soundfile",
+    "librosa"
 ]
 
 [build-system]

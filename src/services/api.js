@@ -153,53 +153,66 @@ export async function synthesizeWithUpload(text, voiceFile, exaggeration = 0.7, 
   }
 }
 
-// ── Qwen-TTS API ──────────────────────────────────────────────
+// ── Qwen-TTS API (Native Python Endpoints) ────────────────────
 
-// Get available Qwen voices
-export async function getQwenVoices() {
-  try {
-    const response = await fetch('/qwen/v1/voices');
-    if (!response.ok) throw new Error(`Qwen Voices Error: ${response.status}`);
-    const data = await response.json();
-    // API returns a list of voice objects
-    return data;
-  } catch (error) {
-    console.error("Error fetching Qwen voices:", error);
-    return [];
+export async function synthesizeQwenCustom(text, speaker, instruct = '') {
+  const formData = new FormData();
+  formData.append('text', text);
+  formData.append('language', 'Auto');
+  formData.append('speaker', speaker);
+  if (instruct) formData.append('instruct', instruct);
+
+  const response = await fetch('/api/qwen/custom-voice', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Custom Voice Error: ${response.status} ${errorText}`);
   }
+
+  const blob = await response.blob();
+  return window.URL.createObjectURL(blob);
 }
 
-// Synthesize speech with Qwen-TTS
-// voice: preset name ("vivian"), or "clone:ProfileName"
-// instruct: optional style instruction (e.g. "Speak angrily", "With a warm tone")
-export async function synthesizeQwen(input, voice, speed = 1.0, instruct = '', responseFormat = 'wav') {
-  try {
-    const body = {
-      model: 'qwen3-tts',
-      input,
-      voice,
-      speed: parseFloat(speed),
-      response_format: responseFormat,
-    };
-    if (instruct && instruct.trim()) {
-      body.instruct = instruct.trim();
-    }
+export async function synthesizeQwenDesign(text, instruct) {
+  const formData = new FormData();
+  formData.append('text', text);
+  formData.append('language', 'Auto');
+  formData.append('instruct', instruct);
 
-    const response = await fetch('/qwen/v1/audio/speech', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+  const response = await fetch('/api/qwen/voice-design', {
+    method: 'POST',
+    body: formData,
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Qwen TTS Error: ${response.status} ${errorText}`);
-    }
-
-    const blob = await response.blob();
-    return window.URL.createObjectURL(blob);
-  } catch (error) {
-    console.error("Error synthesizing with Qwen:", error);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Voice Design Error: ${response.status} ${errorText}`);
   }
+
+  const blob = await response.blob();
+  return window.URL.createObjectURL(blob);
+}
+
+export async function synthesizeQwenClone(text, refAudioFile, refText) {
+  const formData = new FormData();
+  formData.append('text', text);
+  formData.append('language', 'Auto');
+  formData.append('ref_audio', refAudioFile);
+  formData.append('ref_text', refText);
+
+  const response = await fetch('/api/qwen/voice-clone', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Voice Clone Error: ${response.status} ${errorText}`);
+  }
+
+  const blob = await response.blob();
+  return window.URL.createObjectURL(blob);
 }

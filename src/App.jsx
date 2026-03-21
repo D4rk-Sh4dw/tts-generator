@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices, getQwenVoices, synthesizeQwen } from './services/api';
+import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices, synthesizeQwenCustom, synthesizeQwenDesign, synthesizeQwenClone } from './services/api';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy', 'qwen', 'studio'
+  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy', 'qwen'
 
   // Voice Management State
   const [voiceName, setVoiceName] = useState('');
@@ -43,10 +43,11 @@ function App() {
   const [privacyAudioUrl, setPrivacyAudioUrl] = useState(null);
 
   // Qwen-TTS State
-  const [qwenMode, setQwenMode] = useState('preset'); // 'preset', 'clone'
+  const [qwenMode, setQwenMode] = useState('preset'); // 'preset', 'design', 'clone'
   const [qwenPresetVoices, setQwenPresetVoices] = useState(['vivian', 'ryan', 'serena', 'dylan', 'eric', 'aiden', 'ono_anna', 'sohee', 'uncle_fu']);
   const [qwenSelectedVoice, setQwenSelectedVoice] = useState('vivian');
-  const [qwenCloneProfile, setQwenCloneProfile] = useState('');
+  const [qwenCloneAudio, setQwenCloneAudio] = useState(null);
+  const [qwenCloneText, setQwenCloneText] = useState('');
   const [qwenInstruct, setQwenInstruct] = useState('');
   const [qwenText, setQwenText] = useState('');
   const [qwenSpeed, setQwenSpeed] = useState(1.0);
@@ -75,11 +76,6 @@ function App() {
       }
     }
     fetchVoices();
-    getQwenVoices().then(data => {
-      if (data && Array.isArray(data) && data.length > 0) {
-        setQwenPresetVoices(data.map(v => v.name || v.id || v));
-      }
-    }).catch(() => {/* Qwen not available yet */});
   }, []);
 
   const handleVoiceUpload = async () => {
@@ -196,19 +192,31 @@ function App() {
 
   const handleQwenSynthesize = async () => {
     if (!qwenText.trim()) return;
-    let voice;
-    if (qwenMode === 'preset') voice = qwenSelectedVoice;
-    else voice = `clone:${qwenCloneProfile}`;
 
-    if (!voice || !voice.trim()) {
-      alert('Please select a voice or enter a clone profile name.');
+    if (qwenMode === 'preset' && !qwenSelectedVoice) {
+      alert('Please select a preset voice.');
+      return;
+    }
+    if (qwenMode === 'design' && !qwenInstruct.trim()) {
+      alert('Please provide a voice description in the Instruct field.');
+      return;
+    }
+    if (qwenMode === 'clone' && (!qwenCloneAudio || !qwenCloneText.trim())) {
+      alert('Please provide reference audio and reference text for cloning.');
       return;
     }
 
     setIsGeneratingQwen(true);
     setQwenAudioUrl(null);
     try {
-      const blobUrl = await synthesizeQwen(qwenText, voice, qwenSpeed, qwenInstruct);
+      let blobUrl;
+      if (qwenMode === 'preset') {
+        blobUrl = await synthesizeQwenCustom(qwenText, qwenSelectedVoice, qwenInstruct);
+      } else if (qwenMode === 'design') {
+        blobUrl = await synthesizeQwenDesign(qwenText, qwenInstruct);
+      } else if (qwenMode === 'clone') {
+        blobUrl = await synthesizeQwenClone(qwenText, qwenCloneAudio, qwenCloneText);
+      }
       setQwenAudioUrl(blobUrl);
     } catch (err) {
       alert(`Qwen TTS failed: ${err.message}`);
@@ -332,13 +340,6 @@ function App() {
               style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
             >
               🧠 Qwen TTS
-            </button>
-            <button 
-              className={`btn ${activeTab === 'studio' ? 'btn-primary' : ''}`}
-              onClick={() => setActiveTab('studio')}
-              style={{ borderRadius: '16px 16px 0 0', padding: '0.75rem 2rem' }}
-            >
-              🎨 Voice Studio
             </button>
             <button 
               className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`}
@@ -607,12 +608,12 @@ function App() {
             {activeTab === 'qwen' && (
               <div className="qwen-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.85rem' }}>
-                  🧠 <strong>Qwen3-TTS</strong> — 9 Premium-Stimmen oder Stimm-Klone aus dem Voice Studio.
+                  🧠 <strong>Qwen3-TTS</strong> — 9 Premium-Stimmen (CustomVoice), Voice Design via Beschreibung, oder Voice Cloning aus Audiodatei.
                 </div>
 
                 {/* Mode Selector */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {[['preset', '🎵 Preset'], ['clone', '📎 Clone']].map(([mode, label]) => (
+                  {[['preset', '🎵 Preset'], ['design', '🎨 Voice Design'], ['clone', '📎 Clone']].map(([mode, label]) => (
                     <button key={mode} className={`btn ${qwenMode === mode ? 'btn-primary' : ''}`}
                       onClick={() => setQwenMode(mode)}
                       style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
@@ -636,29 +637,43 @@ function App() {
                 {/* Clone Mode */}
                 {qwenMode === 'clone' && (
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Clone Profile Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. MyVoiceProfile (saved in Voice Studio)"
-                      value={qwenCloneProfile}
-                      onChange={(e) => setQwenCloneProfile(e.target.value)}
-                    />
-                    <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.3rem' }}>
-                      Create profiles via <a href="/qwen/voice-studio" target="_blank" rel="noopener" style={{ color: 'var(--accent-primary)' }}>Voice Studio</a> (Port 8880)
-                    </p>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Reference Audio (.wav, .mp3, max 10s)</label>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => setQwenCloneAudio(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Reference Text (Transcript of audio)</label>
+                      <input
+                        type="text"
+                        style={{ width: '100%' }}
+                        placeholder="Was wird in dem Audio-Schnipsel genau gesagt?"
+                        value={qwenCloneText}
+                        onChange={(e) => setQwenCloneText(e.target.value)}
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* Instruct — Style/Emotion directive */}
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>🎭 Instruct <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(optional)</span></label>
-                  <textarea
-                    placeholder='z.B. "Speak with an angry tone", "Mit aufgeregter Stimme", "Very happy and enthusiastic", "Flüstern"...'
-                    style={{ minHeight: '60px', fontSize: '0.9rem', lineHeight: '1.4' }}
-                    value={qwenInstruct}
-                    onChange={(e) => setQwenInstruct(e.target.value)}
-                  />
-                </div>
+                {/* Instruct — Style/Emotion directive / Voice Design description */}
+                {(qwenMode === 'preset' || qwenMode === 'design') && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                      {qwenMode === 'design' ? '🎨 Voice Description' : '🎭 Instruct (optional)'}
+                    </label>
+                    <textarea
+                      placeholder={qwenMode === 'design' 
+                        ? 'Describe the voice, e.g. "A calm elderly woman with a warm, storytelling tone"'
+                        : 'z.B. "Speak with an angry tone", "Mit aufgeregter Stimme", "Flüstern"...'}
+                      style={{ minHeight: qwenMode === 'design' ? '80px' : '60px', fontSize: '0.9rem', lineHeight: '1.4' }}
+                      value={qwenInstruct}
+                      onChange={(e) => setQwenInstruct(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 <textarea
                   placeholder="Enter the text to synthesize with Qwen TTS..."
@@ -707,20 +722,6 @@ function App() {
                     </a>
                   </div>
                 )}
-              </div>
-            )}
-
-            {activeTab === 'studio' && (
-              <div className="studio-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.85rem' }}>
-                  🎨 <strong>Qwen Voice Studio</strong> — Erstelle Stimmprofile per Voice Design, Voice Cloning oder Custom Voice. Profile können dann im Qwen TTS Tab unter "Clone" genutzt werden.
-                </div>
-                <iframe
-                  src={`http://${window.location.hostname}:8880/voice-studio`}
-                  style={{ width: '100%', minHeight: '700px', border: 'none', borderRadius: '8px', background: '#1a1a2e' }}
-                  title="Qwen Voice Studio"
-                  allow="microphone"
-                />
               </div>
             )}
             
