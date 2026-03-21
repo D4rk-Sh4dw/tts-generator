@@ -13,7 +13,7 @@ services:
     ipc: host
     shm_size: '4gb'
     volumes:
-      - huggingface_cache:/root/.cache/huggingface
+      - hf_cache:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -24,4 +24,4 @@ services:
     runtime: nvidia
 
 volumes:
-  huggingface_cache:
+  hf_cache:
