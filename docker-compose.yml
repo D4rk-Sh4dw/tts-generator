@@ -6,31 +6,14 @@ services:
     environment:
       - OLLAMA_TARGET=http://host.docker.internal:11434
       - CHATTERBOX_TARGET=http://host.docker.internal:4123
-      - QWEN_TTS_TARGET=http://qwen-tts:8880
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - qwen-tts
-
-  qwen-tts:
-    build:
-      context: https://github.com/groxaxo/Qwen3-TTS-Openai-Fastapi.git
-    ports:
-      - "8880:8880"
-    user: root
-    environment:
-      - TTS_BACKEND=official
-      - TTS_MODEL_NAME=Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
-      - TTS_WARMUP_ON_START=false
-      - ENABLE_VOICE_STUDIO=true
-      - CORS_ORIGINS=*
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ipc: host
     shm_size: '4gb'
     volumes:
       - huggingface_cache:/root/.cache/huggingface
-      - voice_library:/app/voice_library
     deploy:
       resources:
         reservations:
@@ -42,4 +25,3 @@ services:
 
 volumes:
   huggingface_cache:
-  voice_library:
