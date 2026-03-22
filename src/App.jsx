@@ -232,9 +232,9 @@ function App() {
       } else if (qwenMode === 'design') {
         blobUrl = await synthesizeQwenDesign(qwenText, qwenInstruct);
       } else if (qwenMode === 'clone') {
-        blobUrl = await synthesizeQwenClone(qwenText, qwenCloneAudio, qwenCloneText);
+        blobUrl = await synthesizeQwenClone(qwenText, qwenCloneAudio, qwenCloneText, qwenInstruct);
       } else if (qwenMode === 'saved') {
-        blobUrl = await synthesizeQwenSaved(qwenText, qwenSelectedSavedVoice);
+        blobUrl = await synthesizeQwenSaved(qwenText, qwenSelectedSavedVoice, qwenInstruct);
       }
       setQwenAudioUrl(blobUrl);
     } catch (err) {
@@ -678,7 +678,7 @@ function App() {
                 {/* Preset Mode */}
                 {qwenMode === 'preset' && (
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Voice</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Premium Voice</label>
                     <select value={qwenSelectedVoice} onChange={(e) => setQwenSelectedVoice(e.target.value)}>
                       {qwenPresetVoices.map(v => (
                         <option key={v} value={v}>{v}</option>
@@ -738,15 +738,15 @@ function App() {
                 )}
 
                 {/* Instruct — Style/Emotion directive / Voice Design description */}
-                {(qwenMode === 'preset' || qwenMode === 'design') && (
+                {(qwenMode === 'preset' || qwenMode === 'design' || qwenMode === 'saved' || qwenMode === 'clone') && (
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                      {qwenMode === 'design' ? '🎨 Voice Description' : '🎭 Instruct (optional)'}
+                      {qwenMode === 'design' ? '🎨 Voice Description' : '🎭 Instruct (optional) — works with presets, clones and saved voices!'}
                     </label>
                     <textarea
                       placeholder={qwenMode === 'design' 
                         ? 'Describe the voice, e.g. "A calm elderly woman with a warm, storytelling tone"'
-                        : 'z.B. "Speak with an angry tone", "Mit aufgeregter Stimme", "Flüstern"...'}
+                        : 'e.g. "angry", "whispering", "excited", "sad", "fast and energetic"...'}
                       style={{ minHeight: qwenMode === 'design' ? '80px' : '60px', fontSize: '0.9rem', lineHeight: '1.4' }}
                       value={qwenInstruct}
                       onChange={(e) => setQwenInstruct(e.target.value)}

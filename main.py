@@ -78,7 +78,7 @@ def qwen_voice_design(text: str = Form(...), language: str = Form("Auto"), instr
     return _get_audio_response(wavs, sr)
 
 @app.post("/api/qwen/voice-clone")
-async def qwen_voice_clone(text: str = Form(...), language: str = Form("Auto"), ref_audio: UploadFile = File(...), ref_text: str = Form(...)):
+async def qwen_voice_clone(text: str = Form(...), language: str = Form("Auto"), ref_audio: UploadFile = File(...), ref_text: str = Form(...), instruct: str = Form("")):
     audio_bytes = await ref_audio.read()
     audio_buffer = io.BytesIO(audio_bytes)
     audio_data, audio_sr = sf.read(audio_buffer)
@@ -86,7 +86,7 @@ async def qwen_voice_clone(text: str = Form(...), language: str = Form("Auto"), 
     # Run the blocking model execution in a thread pool managed by FastAPI/anyio internally
     import anyio
     wavs, sr = await anyio.to_thread.run_sync(
-        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text
+        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text, instruct
     )
     return _get_audio_response(wavs, sr)
 
@@ -129,7 +129,7 @@ def delete_qwen_voice(name: str):
     return {"status": "success"}
 
 @app.post("/api/qwen/voice-clone-saved")
-async def qwen_voice_clone_saved(text: str = Form(...), language: str = Form("Auto"), name: str = Form(...)):
+async def qwen_voice_clone_saved(text: str = Form(...), language: str = Form("Auto"), name: str = Form(...), instruct: str = Form("")):
     wav_path = os.path.join(QWEN_VOICES_DIR, f"{name}.wav")
     txt_path = os.path.join(QWEN_VOICES_DIR, f"{name}.txt")
     if not os.path.exists(wav_path) or not os.path.exists(txt_path):
@@ -141,7 +141,7 @@ async def qwen_voice_clone_saved(text: str = Form(...), language: str = Form("Au
         
     import anyio
     wavs, sr = await anyio.to_thread.run_sync(
-        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text
+        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text, instruct
     )
     return _get_audio_response(wavs, sr)
 

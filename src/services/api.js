@@ -196,12 +196,13 @@ export async function synthesizeQwenDesign(text, instruct) {
   return window.URL.createObjectURL(blob);
 }
 
-export async function synthesizeQwenClone(text, refAudioFile, refText) {
+export async function synthesizeQwenClone(text, refAudioFile, refText, instruct = '') {
   const formData = new FormData();
   formData.append('text', text);
   formData.append('language', 'Auto');
   formData.append('ref_audio', refAudioFile);
   formData.append('ref_text', refText);
+  if (instruct) formData.append('instruct', instruct);
 
   const response = await fetch('/api/qwen/voice-clone', {
     method: 'POST',
@@ -257,11 +258,12 @@ export async function deleteQwenVoice(name) {
   return true;
 }
 
-export async function synthesizeQwenSaved(text, name, language="Auto") {
+export async function synthesizeQwenSaved(text, name, instruct = '', language = "Auto") {
   const formData = new FormData();
   formData.append('text', text);
   formData.append('language', language);
   formData.append('name', name);
+  if (instruct) formData.append('instruct', instruct);
 
   const response = await fetch('/api/qwen/voice-clone-saved', {
     method: 'POST',

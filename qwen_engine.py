@@ -79,14 +79,15 @@ class QwenEngine:
         )
         return wavs[0], sr
 
-    def voice_clone(self, text, language, ref_audio, ref_text):
+    def voice_clone(self, text, language, ref_audio, ref_text, instruct=""):
         model = self._load_model("Qwen/Qwen3-TTS-12Hz-1.7B-Base")
         # ref_audio can be a file path, tuple, or bytes. We will pass a numpy array from soundfile
         wavs, sr = model.generate_voice_clone(
             text=text,
             language=language or "Auto",
             ref_audio=ref_audio,
-            ref_text=ref_text
+            ref_text=ref_text,
+            instruct=instruct or ""
         )
         return wavs[0], sr
 
