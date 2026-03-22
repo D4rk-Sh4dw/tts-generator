@@ -57,6 +57,36 @@ async def _proxy(request: Request, target_url: str) -> StreamingResponse:
     )
 
 
+def _get_audio_response(wav_array, sr):
+    buffer = io.BytesIO()
+    sf.write(buffer, wav_array, sr, format='WAV')
+    buffer.seek(0)
+    return Response(content=buffer.read(), media_type="audio/wav")
+
+# ── Qwen-TTS Native Routes ─────────────────────────────
+@app.post("/api/qwen/custom-voice")
+def qwen_custom_voice(text: str = Form(...), language: str = Form("Auto"), speaker: str = Form(...), instruct: str = Form("")):
+    wavs, sr = qwen_engine.custom_voice(text, language, speaker, instruct)
+    return _get_audio_response(wavs, sr)
+
+@app.post("/api/qwen/voice-design")
+def qwen_voice_design(text: str = Form(...), language: str = Form("Auto"), instruct: str = Form(...)):
+    wavs, sr = qwen_engine.voice_design(text, language, instruct)
+    return _get_audio_response(wavs, sr)
+
+@app.post("/api/qwen/voice-clone")
+async def qwen_voice_clone(text: str = Form(...), language: str = Form("Auto"), ref_audio: UploadFile = File(...), ref_text: str = Form(...)):
+    audio_bytes = await ref_audio.read()
+    audio_buffer = io.BytesIO(audio_bytes)
+    audio_data, audio_sr = sf.read(audio_buffer)
+    
+    # Run the blocking model execution in a thread pool managed by FastAPI/anyio internally
+    import anyio
+    wavs, sr = await anyio.to_thread.run_sync(
+        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text
+    )
+    return _get_audio_response(wavs, sr)
+
 # ── Ollama proxy ────────────────────────────────────────────
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
 async def proxy_ollama(request: Request, path: str):
@@ -91,38 +121,6 @@ async def proxy_languages(request: Request):
 async def proxy_health(request: Request):
     url = f"{CHATTERBOX_TARGET}/health"
     return await _proxy(request, url)
-
-
-def _get_audio_response(wav_array, sr):
-    buffer = io.BytesIO()
-    sf.write(buffer, wav_array, sr, format='WAV')
-    buffer.seek(0)
-    return Response(content=buffer.read(), media_type="audio/wav")
-
-
-# ── Qwen-TTS Native Routes ─────────────────────────────
-@app.post("/api/qwen/custom-voice")
-def qwen_custom_voice(text: str = Form(...), language: str = Form("Auto"), speaker: str = Form(...), instruct: str = Form("")):
-    wavs, sr = qwen_engine.custom_voice(text, language, speaker, instruct)
-    return _get_audio_response(wavs, sr)
-
-@app.post("/api/qwen/voice-design")
-def qwen_voice_design(text: str = Form(...), language: str = Form("Auto"), instruct: str = Form(...)):
-    wavs, sr = qwen_engine.voice_design(text, language, instruct)
-    return _get_audio_response(wavs, sr)
-
-@app.post("/api/qwen/voice-clone")
-async def qwen_voice_clone(text: str = Form(...), language: str = Form("Auto"), ref_audio: UploadFile = File(...), ref_text: str = Form(...)):
-    audio_bytes = await ref_audio.read()
-    audio_buffer = io.BytesIO(audio_bytes)
-    audio_data, audio_sr = sf.read(audio_buffer)
-    
-    # Run the blocking model execution in a thread pool managed by FastAPI/anyio internally
-    import anyio
-    wavs, sr = await anyio.to_thread.run_sync(
-        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text
-    )
-    return _get_audio_response(wavs, sr)
 
 
 # ── Serve compiled Vite frontend ─────────────────────────────
