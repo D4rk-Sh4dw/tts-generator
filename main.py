@@ -63,6 +63,9 @@ def _get_audio_response(wav_array, sr):
     buffer.seek(0)
     return Response(content=buffer.read(), media_type="audio/wav")
 
+QWEN_VOICES_DIR = os.path.join(os.path.dirname(__file__), "qwen_voices")
+os.makedirs(QWEN_VOICES_DIR, exist_ok=True)
+
 # ── Qwen-TTS Native Routes ─────────────────────────────
 @app.post("/api/qwen/custom-voice")
 def qwen_custom_voice(text: str = Form(...), language: str = Form("Auto"), speaker: str = Form(...), instruct: str = Form("")):
@@ -81,6 +84,61 @@ async def qwen_voice_clone(text: str = Form(...), language: str = Form("Auto"), 
     audio_data, audio_sr = sf.read(audio_buffer)
     
     # Run the blocking model execution in a thread pool managed by FastAPI/anyio internally
+    import anyio
+    wavs, sr = await anyio.to_thread.run_sync(
+        qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text
+    )
+    return _get_audio_response(wavs, sr)
+
+@app.get("/api/qwen/voices")
+def list_qwen_voices():
+    voices = []
+    if os.path.exists(QWEN_VOICES_DIR):
+        for f in os.listdir(QWEN_VOICES_DIR):
+            if f.endswith(".wav"):
+                name = f[:-4]
+                txt_path = os.path.join(QWEN_VOICES_DIR, f"{name}.txt")
+                ref_text = ""
+                if os.path.exists(txt_path):
+                    with open(txt_path, "r", encoding="utf-8") as tf:
+                        ref_text = tf.read().strip()
+                voices.append({"name": name, "ref_text": ref_text})
+    voices.sort(key=lambda x: x["name"])
+    return {"voices": voices}
+
+@app.post("/api/qwen/voices")
+async def save_qwen_voice(name: str = Form(...), ref_audio: UploadFile = File(...), ref_text: str = Form(...)):
+    safe_name = "".join([c for c in name if c.isalnum() or c in (' ', '-', '_')]).strip()
+    if not safe_name: safe_name = "unnamed"
+    wav_path = os.path.join(QWEN_VOICES_DIR, f"{safe_name}.wav")
+    txt_path = os.path.join(QWEN_VOICES_DIR, f"{safe_name}.txt")
+    
+    audio_bytes = await ref_audio.read()
+    with open(wav_path, "wb") as f:
+        f.write(audio_bytes)
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(ref_text)
+    return {"status": "success", "name": safe_name}
+
+@app.delete("/api/qwen/voices/{name}")
+def delete_qwen_voice(name: str):
+    wav_path = os.path.join(QWEN_VOICES_DIR, f"{name}.wav")
+    txt_path = os.path.join(QWEN_VOICES_DIR, f"{name}.txt")
+    if os.path.exists(wav_path): os.remove(wav_path)
+    if os.path.exists(txt_path): os.remove(txt_path)
+    return {"status": "success"}
+
+@app.post("/api/qwen/voice-clone-saved")
+async def qwen_voice_clone_saved(text: str = Form(...), language: str = Form("Auto"), name: str = Form(...)):
+    wav_path = os.path.join(QWEN_VOICES_DIR, f"{name}.wav")
+    txt_path = os.path.join(QWEN_VOICES_DIR, f"{name}.txt")
+    if not os.path.exists(wav_path) or not os.path.exists(txt_path):
+        return Response(content="Voice not found", status_code=404)
+        
+    audio_data, audio_sr = sf.read(wav_path)
+    with open(txt_path, "r", encoding="utf-8") as f:
+        ref_text = f.read().strip()
+        
     import anyio
     wavs, sr = await anyio.to_thread.run_sync(
         qwen_engine.voice_clone, text, language, (audio_data, audio_sr), ref_text

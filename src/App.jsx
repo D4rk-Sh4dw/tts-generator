@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
-import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices, synthesizeQwenCustom, synthesizeQwenDesign, synthesizeQwenClone } from './services/api';
+import { chatOllama, uploadVoice, deleteVoice, synthesizeSpeech, synthesizeWithUpload, getVoices, synthesizeQwenCustom, synthesizeQwenDesign, synthesizeQwenClone, getQwenVoices, saveQwenVoice, deleteQwenVoice, synthesizeQwenSaved } from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'chat', 'privacy', 'qwen'
@@ -54,6 +54,12 @@ function App() {
   const [isGeneratingQwen, setIsGeneratingQwen] = useState(false);
   const [qwenAudioUrl, setQwenAudioUrl] = useState(null);
 
+  // Qwen Voice Persistence
+  const [qwenSavedVoices, setQwenSavedVoices] = useState([]);
+  const [qwenSelectedSavedVoice, setQwenSelectedSavedVoice] = useState('');
+  const [qwenSaveName, setQwenSaveName] = useState('');
+  const [isSavingQwenVoice, setIsSavingQwenVoice] = useState(false);
+
   // Scroll to bottom of chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,6 +82,13 @@ function App() {
       }
     }
     fetchVoices();
+
+    async function fetchQwenSaved() {
+      const v = await getQwenVoices();
+      setQwenSavedVoices(v);
+      if (v.length > 0) setQwenSelectedSavedVoice(v[0].name);
+    }
+    fetchQwenSaved();
   }, []);
 
   const handleVoiceUpload = async () => {
@@ -197,6 +210,10 @@ function App() {
       alert('Please select a preset voice.');
       return;
     }
+    if (qwenMode === 'saved' && !qwenSelectedSavedVoice) {
+      alert('Please select a saved voice.');
+      return;
+    }
     if (qwenMode === 'design' && !qwenInstruct.trim()) {
       alert('Please provide a voice description in the Instruct field.');
       return;
@@ -216,12 +233,48 @@ function App() {
         blobUrl = await synthesizeQwenDesign(qwenText, qwenInstruct);
       } else if (qwenMode === 'clone') {
         blobUrl = await synthesizeQwenClone(qwenText, qwenCloneAudio, qwenCloneText);
+      } else if (qwenMode === 'saved') {
+        blobUrl = await synthesizeQwenSaved(qwenText, qwenSelectedSavedVoice);
       }
       setQwenAudioUrl(blobUrl);
     } catch (err) {
       alert(`Qwen TTS failed: ${err.message}`);
     } finally {
       setIsGeneratingQwen(false);
+    }
+  };
+
+  const handleSaveQwenClone = async () => {
+    if (!qwenSaveName.trim() || !qwenCloneAudio || !qwenCloneText.trim()) {
+      alert("Please provide a name, an audio file, and the reference text to save.");
+      return;
+    }
+    setIsSavingQwenVoice(true);
+    try {
+      await saveQwenVoice(qwenSaveName.trim(), qwenCloneAudio, qwenCloneText);
+      alert("Voice saved successfully!");
+      const v = await getQwenVoices();
+      setQwenSavedVoices(v);
+      setQwenSaveName('');
+      setQwenMode('saved');
+      setQwenSelectedSavedVoice(qwenSaveName.trim());
+    } catch (err) {
+      alert(`Save failed: ${err.message}`);
+    } finally {
+      setIsSavingQwenVoice(false);
+    }
+  };
+
+  const handleDeleteQwenVoice = async () => {
+    if (!confirm(`Delete saved voice "${qwenSelectedSavedVoice}"?`)) return;
+    try {
+      await deleteQwenVoice(qwenSelectedSavedVoice);
+      const v = await getQwenVoices();
+      setQwenSavedVoices(v);
+      if (v.length > 0) setQwenSelectedSavedVoice(v[0].name);
+      else setQwenSelectedSavedVoice('');
+    } catch(e) {
+      alert(e.message);
     }
   };
 
@@ -613,7 +666,7 @@ function App() {
 
                 {/* Mode Selector */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {[['preset', '🎵 Preset'], ['design', '🎨 Voice Design'], ['clone', '📎 Clone']].map(([mode, label]) => (
+                  {[['preset', '🎵 Preset'], ['saved', '💾 Saved Clones'], ['design', '🎨 Voice Design'], ['clone', '📎 Clone New']].map(([mode, label]) => (
                     <button key={mode} className={`btn ${qwenMode === mode ? 'btn-primary' : ''}`}
                       onClick={() => setQwenMode(mode)}
                       style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
@@ -634,6 +687,23 @@ function App() {
                   </div>
                 )}
 
+                {/* Saved Clones Mode */}
+                {qwenMode === 'saved' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Saved Voice</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <select value={qwenSelectedSavedVoice} onChange={(e) => setQwenSelectedSavedVoice(e.target.value)} style={{ flex: 1 }}>
+                        {qwenSavedVoices.map(v => (
+                          <option key={v.name} value={v.name}>{v.name} ("{v.ref_text}")</option>
+                        ))}
+                      </select>
+                      {qwenSavedVoices.length > 0 && (
+                        <button className="btn" onClick={handleDeleteQwenVoice} style={{ padding: '0.5rem', color: 'var(--danger)' }} title="Delete voice">🗑️</button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Clone Mode */}
                 {qwenMode === 'clone' && (
                   <div>
@@ -645,7 +715,7 @@ function App() {
                         onChange={(e) => setQwenCloneAudio(e.target.files?.[0] || null)}
                       />
                     </div>
-                    <div>
+                    <div style={{ marginBottom: '1rem' }}>
                       <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Reference Text (Transcript of audio)</label>
                       <input
                         type="text"
@@ -654,6 +724,15 @@ function App() {
                         value={qwenCloneText}
                         onChange={(e) => setQwenCloneText(e.target.value)}
                       />
+                    </div>
+                    <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Save this voice for later?</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input type="text" placeholder="Voice Name" value={qwenSaveName} onChange={(e) => setQwenSaveName(e.target.value)} style={{ flex: 1 }} />
+                        <button className="btn" onClick={handleSaveQwenClone} disabled={isSavingQwenVoice}>
+                          {isSavingQwenVoice ? 'Saving...' : '💾 Save'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

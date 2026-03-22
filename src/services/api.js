@@ -216,3 +216,63 @@ export async function synthesizeQwenClone(text, refAudioFile, refText) {
   const blob = await response.blob();
   return window.URL.createObjectURL(blob);
 }
+
+export async function getQwenVoices() {
+  try {
+    const response = await fetch('/api/qwen/voices');
+    if (!response.ok) throw new Error('Failed to load Qwen voices');
+    const data = await response.json();
+    return data.voices || [];
+  } catch (e) {
+    console.warn("Could not fetch Qwen voices", e);
+    return [];
+  }
+}
+
+export async function saveQwenVoice(name, refAudioFile, refText) {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('ref_audio', refAudioFile);
+  formData.append('ref_text', refText);
+
+  const response = await fetch('/api/qwen/voices', {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Voice Save Error: ${response.status} ${errorText}`);
+  }
+  return await response.json();
+}
+
+export async function deleteQwenVoice(name) {
+  const response = await fetch(`/api/qwen/voices/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Delete failed: ${response.status} ${errorText}`);
+  }
+  return true;
+}
+
+export async function synthesizeQwenSaved(text, name, language="Auto") {
+  const formData = new FormData();
+  formData.append('text', text);
+  formData.append('language', language);
+  formData.append('name', name);
+
+  const response = await fetch('/api/qwen/voice-clone-saved', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Synthesize Saved Voice Error: ${response.status} ${errorText}`);
+  }
+
+  const blob = await response.blob();
+  return window.URL.createObjectURL(blob);
+}
